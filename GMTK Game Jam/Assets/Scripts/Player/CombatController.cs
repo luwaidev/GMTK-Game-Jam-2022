@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class CombatController : MonoBehaviour
 {
-    public enum State { Idle, Reload, Roll }
+    public enum State { Idle, Reload, Roll, Cutscene }
 
     [Header("References")]
     public State state;
@@ -21,7 +21,6 @@ public class CombatController : MonoBehaviour
 
     [Header("Weapon Settings")]
     public int currentWeapon;
-    public int[] damage;
     public int[] curAmmo;
     public int[] maxAmmo;
     public float[] fireSpeed;
@@ -47,14 +46,61 @@ public class CombatController : MonoBehaviour
         mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         mousePositionTP = (mousePosition - (Vector2)transform.position).normalized;
 
-        gun.transform.position = mousePositionTP * gunDistance;
+        gun.transform.position = mousePositionTP * gunDistance + (Vector2)transform.position;
         gun.transform.eulerAngles = new Vector3(0, 0, Mathf.Atan2(mousePositionTP.y, mousePositionTP.x) * Mathf.Rad2Deg);
 
 
     }
 
     //////////////// Functions ///////////////
-
+    void Shoot()
+    {
+        switch (currentWeapon)
+        {
+            case 0:
+                Weapon1();
+                break;
+            case 1:
+                Weapon2();
+                break;
+            case 2:
+                Weapon3();
+                break;
+            case 3:
+                Weapon4();
+                break;
+            case 4:
+                Weapon5();
+                break;
+            case 5:
+                Weapon6();
+                break;
+        }
+    }
+    void Weapon1()
+    {
+        Instantiate(bullets[currentWeapon], gun.transform.position, gun.transform.rotation);
+    }
+    void Weapon2()
+    {
+        Instantiate(bullets[currentWeapon], gun.transform.position, gun.transform.rotation);
+    }
+    void Weapon3()
+    {
+        Instantiate(bullets[currentWeapon], gun.transform.position, gun.transform.rotation);
+    }
+    void Weapon4()
+    {
+        Instantiate(bullets[currentWeapon], gun.transform.position, gun.transform.rotation);
+    }
+    void Weapon5()
+    {
+        Instantiate(bullets[currentWeapon], gun.transform.position, gun.transform.rotation);
+    }
+    void Weapon6()
+    {
+        Instantiate(bullets[currentWeapon], gun.transform.position, gun.transform.rotation);
+    }
     //////////////// Coroutine ///////////////
 
     //////////////// States ///////////////
@@ -77,7 +123,8 @@ public class CombatController : MonoBehaviour
         {
             if (Input.GetButton("Fire1"))
             {
-                yield return new WaitForSeconds(reloadTime[currentWeapon]);
+                Shoot();
+                yield return new WaitForSeconds(fireSpeed[currentWeapon]);
             }
 
             if (curAmmo[currentWeapon] <= 0)
@@ -103,11 +150,27 @@ public class CombatController : MonoBehaviour
         }
     }
 
-    IEnumerator RollState()
+    public IEnumerator RollState(float time)
     {
-        yield return new WaitForSeconds(reloadTime[currentWeapon]);
+        yield return new WaitForSeconds(time);
 
-        currentWeapon = Random.Range(0, 5);
+        int lastWeapon = currentWeapon;
+        while (currentWeapon == lastWeapon)
+        {
+            currentWeapon = Random.Range(0, 3);
+        }
+
+        yield return new WaitForSeconds(time);
+
+        NextState();
+    }
+
+    IEnumerator CutsceneState()
+    {
+        while (state == State.Cutscene)
+        {
+            yield return null;
+        }
 
         NextState();
     }

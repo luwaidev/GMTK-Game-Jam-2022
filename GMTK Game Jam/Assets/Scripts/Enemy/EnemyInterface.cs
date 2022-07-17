@@ -4,5 +4,5 @@ using UnityEngine;
 
 public interface EnemyInterface
 {
-    void Hit() { }
+    void Hit(int damage, Vector2 position) { }
 }

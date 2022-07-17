@@ -15,6 +15,13 @@ public class GameManager : MonoBehaviour
     public bool loaded;
     public bool loadingScene;
 
+    [Header("Score")]
+    public int score;
+
+    [Header("Battle")]
+    public Transform battleText;
+    public bool battleStarted;
+
     private void Awake()
     {
         if (GameObject.FindGameObjectWithTag("GameController") != gameObject) Destroy(gameObject);
@@ -87,5 +94,11 @@ public class GameManager : MonoBehaviour
     {
 
         // if (Keyboard.current.escapeKey.wasPressedThisFrame) TogglePause();
+    }
+
+    public void StartBattle()
+    {
+        TextAnimDialogue.instance.StartText(battleText);
+        battleStarted = true;
     }
 }

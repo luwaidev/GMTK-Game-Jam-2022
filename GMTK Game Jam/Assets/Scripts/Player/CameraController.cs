@@ -4,11 +4,22 @@ using UnityEngine;
 
 public class CameraController : MonoBehaviour
 {
-    [Header("Targeting Settings")]
+    [Header("Camera Settings")]
+    public static CameraController instance;
+    [SerializeField] Transform target;
+    [SerializeField] float cameraSpeed;
+    [SerializeField] float deadzone;
+    [SerializeField] Vector2 offset;
+    [SerializeField] float mouseFollowMagnitude;
+    public bool inCutscene;
 
-    public Transform target;
-    public float speed;
-    public Vector2 offset;
+    public Vector2 maxPosition;
+    public Vector2 minPosition;
+
+    private void Awake()
+    {
+        instance = this;
+    }
 
     // Start is called before the first frame update
     void Start()
@@ -19,9 +30,22 @@ public class CameraController : MonoBehaviour
     // Update is called once per frame
     void FixedUpdate()
     {
-        Vector3 targetPosition = target.position + (Vector3)offset;
-        targetPosition.z = -10;
+        Vector2 targetPosition = (Vector2)target.transform.position + offset;
 
-        transform.position = Vector3.Lerp(transform.position, targetPosition, speed);
+
+        // Look towards mouse
+        Vector2 mousePosition = (Vector2)Camera.main.ScreenToWorldPoint(Input.mousePosition) - targetPosition;
+        if (Mathf.Abs(mousePosition.x) > deadzone || Mathf.Abs(mousePosition.y) > deadzone)
+        {
+            Vector2 mouseOffset = new Vector2(
+                Mathf.Sign(mousePosition.x) * Mathf.Sqrt(Mathf.Abs(mousePosition.x)),
+                Mathf.Sign(mousePosition.y) * Mathf.Sqrt(Mathf.Abs(mousePosition.y))) * mouseFollowMagnitude;
+            targetPosition += mouseOffset;
+        }
+
+        targetPosition.x = Mathf.Clamp(targetPosition.x, (minPosition.x != 0) ? minPosition.x : -100000, (maxPosition.x != 0) ? maxPosition.x : 100000);
+        targetPosition.y = Mathf.Clamp(targetPosition.y, (minPosition.y != 0) ? minPosition.y : -100000, (maxPosition.y != 0) ? maxPosition.y : 100000);
+        if (!inCutscene) transform.position = (Vector3)Vector2.Lerp(transform.position, targetPosition, cameraSpeed) - Vector3.forward * 10;
+
     }
 }
