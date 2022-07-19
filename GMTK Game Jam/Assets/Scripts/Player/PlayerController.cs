@@ -1,10 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using MoreMountains.Feedbacks;
 
 public class PlayerController : MonoBehaviour
 {
-    public enum State { Idle, Run, Roll, Hit, Cutscene, Dead }
+    public enum State { Intro, Idle, Run, Roll, Hit, Cutscene, Dead }
 
     [Header("References")]
     public State state;
@@ -25,6 +26,7 @@ public class PlayerController : MonoBehaviour
     public float knockbackStrength;
     public float knockbackTime;
     public Vector2 enemyPosition;
+    public Animator[] hearts;
 
     [Header("Movement Settings")]
     public float speed;
@@ -35,6 +37,9 @@ public class PlayerController : MonoBehaviour
     private Vector2 mousePosition;
     private Vector2 mousePositionTP; // Mouse position to player
 
+    [Header("Feedbacks")]
+    public MMFeedbacks hitFeedback;
+    public MMFeedbacks rollFeedback;
 
 
     //////////////// Unity Functions ///////////////
@@ -53,7 +58,7 @@ public class PlayerController : MonoBehaviour
     // Start is called before the first frame update
     public void Start()
     {
-        state = State.Idle;
+        state = State.Intro;
         NextState();
     }
 
@@ -92,8 +97,11 @@ public class PlayerController : MonoBehaviour
     //////////////// Functions ///////////////
     public void Hit(Vector2 position)
     {
-        state = State.Hit;
-        enemyPosition = position;
+        if (state != State.Roll)
+        {
+            state = State.Hit;
+            enemyPosition = position;
+        }
     }
 
     public string GetDirection()
@@ -151,7 +159,7 @@ public class PlayerController : MonoBehaviour
     //////////////// Coroutine ///////////////
 
     //////////////// States ///////////////
-    void NextState()
+    public void NextState()
     {
         string methodName = state.ToString() + "State";
 
@@ -163,9 +171,21 @@ public class PlayerController : MonoBehaviour
 
         StartCoroutine((IEnumerator)info.Invoke(this, null)); // Call the next state
     }
+    IEnumerator IntroState()
+    {
+        anim.enabled = false;
+        yield return new WaitForSeconds(1.5f);
+        anim.enabled = true;
+        anim.Play("Wake Up");
+        yield return new WaitForSeconds(0.9f);
+        state = State.Idle;
+        NextState();
+    }
 
     IEnumerator IdleState()
     {
+
+        cc.state = CombatController.State.Idle;
         while (state == State.Idle)
         {
             if (input != Vector2.zero) state = State.Run;
@@ -204,7 +224,7 @@ public class PlayerController : MonoBehaviour
 
     IEnumerator RollState()
     {
-
+        rollFeedback.PlayFeedbacks();
         velocity = Vector2.zero;
         // Move velocity     
         rb.AddForce(lastInput * rollSpeed);
@@ -233,31 +253,45 @@ public class PlayerController : MonoBehaviour
 
     IEnumerator HitState()
     {
-
+        anim.Play("Player Hit");
+        hitFeedback.PlayFeedbacks();
+        print("bruh");
         // Move velocity     
         rb.AddForce((enemyPosition - (Vector2)transform.position).normalized * -knockbackStrength);
 
         cc.StopAllCoroutines();
-        cc.StartCoroutine(cc.RollState(knockbackTime));
+        cc.StartCoroutine(cc.HitState(knockbackTime));
 
         health--;
+        if (health <= 0)
+        {
+            state = State.Dead;
+        }
+        else
+        {
+            hearts[health].enabled = true;
 
-        boxCollider.gameObject.SetActive(false);
-        bounceCollider.gameObject.SetActive(true);
 
-        // Wait roll time
-        yield return new WaitForSeconds(knockbackTime);
+            boxCollider.enabled = false;
+            bounceCollider.enabled = true;
 
-        boxCollider.gameObject.SetActive(true);
-        bounceCollider.gameObject.SetActive(false);
+            // Wait roll time
+            yield return new WaitForSeconds(knockbackTime);
 
-        state = State.Idle;
-        velocity = Vector2.zero;
+            boxCollider.enabled = true;
+            bounceCollider.enabled = false;
+
+            state = State.Idle;
+            velocity = Vector2.zero;
+        }
+
         NextState();
     }
 
     IEnumerator CutsceneState()
     {
+
+        anim.Play((cc.currentWeapon + 1) + " Player Idle 1", 0);
         velocity = Vector2.zero;
         while (state == State.Cutscene)
         {
@@ -272,6 +306,7 @@ public class PlayerController : MonoBehaviour
     IEnumerator DeadState()
     {
         velocity = Vector2.zero;
+        GameManager.instance.StartCoroutine(GameManager.instance.Death());
         yield return new WaitForSeconds(10);
     }
 }

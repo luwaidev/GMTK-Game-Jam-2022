@@ -64,9 +64,14 @@ public class WaveManager : MonoBehaviour
     {
         yield return new WaitForSeconds(preWaveTime);
 
+        print("spawn");
         for (int i = 0; i < startSpawnAmount + Mathf.Sqrt(round); i++)
         {
             Mathf.Clamp(Random.Range(0, enemies.Length - 1) + Mathf.Sqrt(round) / 2, 0, enemies.Length - 1);
+            Instantiate(enemies[Random.Range(0, enemies.Length - 1)],
+                        new Vector2(Random.Range(battleAreaMin.x, battleAreaMax.x),
+                                    Random.Range(battleAreaMin.y, battleAreaMax.y)),
+                        Quaternion.identity);
             yield return new WaitForSeconds(enemySpawnTime * Random.Range(0.5f, 0.12f));
         }
 

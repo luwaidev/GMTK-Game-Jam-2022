@@ -7,6 +7,9 @@ public class BulletController : MonoBehaviour
     public float speed;
     public int damage;
 
+    public bool crystal;
+    public bool fire;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -20,26 +23,44 @@ public class BulletController : MonoBehaviour
             if (other.tag == "Player")
             {
                 other.GetComponent<PlayerController>().Hit(transform.position);
-                Destroy(gameObject);
+                Destroy();
             }
             if (other.tag != "Camera" && other.tag != "Enemy")
             {
-                Destroy(gameObject);
+                Destroy();
             }
         }
         else if (gameObject.tag == "Player Bullet")
         {
+
             if (other.tag == "Enemy")
             {
+                if (fire)
+                {
+                    transform.GetChild(0).gameObject.SetActive(true);
+                }
                 if (other.GetComponent<EnemyInterface>() != null)
                 {
                     other.GetComponent<EnemyInterface>().Hit(damage, (Vector2)transform.position);
                 }
-                Destroy(gameObject);
+                Destroy();
             }
-            if (other.tag != "Player" && other.tag != "Camera") Destroy(gameObject);
+            if (other.tag != "Player" && other.tag != "Camera" && other.tag != "Player Bullet")
+            {
+                if (fire)
+                {
+                    transform.GetChild(0).gameObject.SetActive(true);
+                }
+                Destroy();
+            }
 
         }
 
+    }
+
+    void Destroy()
+    {
+        GetComponent<Rigidbody2D>().velocity = Vector2.zero;
+        GetComponent<Animator>().Play("Bullet Hit");
     }
 }

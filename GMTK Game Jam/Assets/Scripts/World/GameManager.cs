@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using MoreMountains.Feedbacks;
 
 public class GameManager : MonoBehaviour
 {
@@ -18,16 +19,29 @@ public class GameManager : MonoBehaviour
     [Header("Score")]
     public int score;
 
+
+    [Header("Intro")]
+    public bool started;
+    public bool cstarted;
+    public Transform cameraPosition;
+    public Transform battlePosition;
+    public float playerTriggerBattle;
+    public GameObject spawnBox;
+    public GameObject captureBox;
+    public MMFeedbacks fade;
+
+
     [Header("Battle")]
     public Transform battleText;
     public bool battleStarted;
+    public AudioSource battleAudio;
 
     private void Awake()
     {
         if (GameObject.FindGameObjectWithTag("GameController") != gameObject) Destroy(gameObject);
 
         instance = this;
-        DontDestroyOnLoad(gameObject);
+        //DontDestroyOnLoad(gameObject);
     }
     private void Start()
     {
@@ -93,12 +107,60 @@ public class GameManager : MonoBehaviour
     private void Update()
     {
 
-        // if (Keyboard.current.escapeKey.wasPressedThisFrame) TogglePause();
     }
 
     public void StartBattle()
     {
-        TextAnimDialogue.instance.StartText(battleText);
+        StartCoroutine(StartSequence());
+    }
+
+    IEnumerator StartSequence()
+    {
+
+        GameObject c = Instantiate(captureBox, PlayerController.instance.transform.position, Quaternion.identity);
+        c.SetActive(true);
+        PlayerController.instance.gameObject.SetActive(false);
+        yield return new WaitForSeconds(1);
+        fade.PlayFeedbacks();
+
+        yield return new WaitForSeconds(2.5f);
+        Destroy(c);
+        CameraController.instance.maxPosition = Vector2.one * 1000;
+        CameraController.instance.target = battlePosition;
+        yield return new WaitForSeconds(2.5f);
+
+
+        yield return new WaitForSeconds(1);
+
+        spawnBox.SetActive(true);
+
+        yield return new WaitForSeconds(0.2f);
+        PlayerController.instance.gameObject.SetActive(true);
+        PlayerController.instance.transform.position = new Vector2(50, 0);
+        yield return new WaitForSeconds(1);
+
+        CameraController.instance.target = PlayerController.instance.transform;
+        PlayerController.instance.state = PlayerController.State.Idle;
+        PlayerController.instance.NextState();
+
+        CameraController.instance.maxPosition = new Vector2(52.2f, 3.25f);
+        CameraController.instance.minPosition = new Vector2(47.9f, -3.25f);
+
+        CameraController.instance.cameraSpeed = 0.125f;
         battleStarted = true;
+
+        yield return new WaitForSeconds(1);
+        WaveManager.manager.StartWaves();
+
+
+
+    }
+
+    public IEnumerator Death()
+    {
+
+        fade.PlayFeedbacks();
+        yield return new WaitForSeconds(1);
+        SceneManager.LoadScene("Game");
     }
 }

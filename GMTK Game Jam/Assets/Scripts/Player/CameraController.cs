@@ -6,8 +6,8 @@ public class CameraController : MonoBehaviour
 {
     [Header("Camera Settings")]
     public static CameraController instance;
-    [SerializeField] Transform target;
-    [SerializeField] float cameraSpeed;
+    public Transform target;
+    public float cameraSpeed;
     [SerializeField] float deadzone;
     [SerializeField] Vector2 offset;
     [SerializeField] float mouseFollowMagnitude;

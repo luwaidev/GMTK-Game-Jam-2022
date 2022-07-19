@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using MoreMountains.Feedbacks;
 
 public class CardEnemy : MonoBehaviour, EnemyInterface
 {
@@ -12,7 +13,7 @@ public class CardEnemy : MonoBehaviour, EnemyInterface
     private Animator anim;
     public string cardType;
     public PlayerController p;
-    int health;
+    public int health;
 
     [Header("Movement")]
     public float followDistance;
@@ -29,10 +30,18 @@ public class CardEnemy : MonoBehaviour, EnemyInterface
     public float knockbackTime;
     public float knockbackStrength;
 
+    public GameObject crystal;
+    public bool crystaled;
+
+    [Header("Feedbacks")]
+    public MMFeedbacks hit;
+
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
+
+        hit = GameObject.Find("Enemy Hit").GetComponent<MMFeedbacks>();
 
     }
     // Start is called before the first frame update
@@ -57,10 +66,17 @@ public class CardEnemy : MonoBehaviour, EnemyInterface
 
     public void Hit(int damage, Vector2 position)
     {
+        if (damage == -1)
+        {
+            crystaled = true;
+        }
+        if (state == State.Hit) return;
         health -= damage;
         bulletPosition = position;
 
         state = State.Hit;
+        StopAllCoroutines();
+        StartCoroutine(HitState());
     }
 
     //////////////// States ///////////////
@@ -81,8 +97,6 @@ public class CardEnemy : MonoBehaviour, EnemyInterface
     {
         while (state == State.Idle)
         {
-
-
             yield return null;
         }
 
@@ -128,8 +142,32 @@ public class CardEnemy : MonoBehaviour, EnemyInterface
 
     IEnumerator HitState()
     {
-        v = (bulletPosition - (Vector2)transform.position).normalized * knockbackStrength;
+        anim.Play(cardType + " Hit");
+        hit.PlayFeedbacks();
+
+        Vector2 direction = p.transform.position - transform.position;
+        if (health <= 0)
+        {
+            v = Vector2.zero;
+            anim.Play(cardType + " Death" + (direction.y > 0 ? " Back" : " Front"), 0);
+            yield return new WaitForSeconds(10);
+        }
+        else
+        {
+            v = (PlayerController.instance.transform.position - transform.position).normalized * -knockbackStrength;
+        }
+
+        if (crystaled)
+        {
+            GameObject c = Instantiate(crystal, transform);
+            v = Vector2.zero;
+            health -= 6;
+            yield return new WaitForSeconds(1);
+            Destroy(c, knockbackTime);
+            crystaled = false;
+        }
         yield return new WaitForSeconds(knockbackTime);
+
 
         state = State.Follow;
         NextState();

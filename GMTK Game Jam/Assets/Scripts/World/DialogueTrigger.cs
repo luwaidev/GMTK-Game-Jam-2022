@@ -8,6 +8,7 @@ public class DialogueTrigger : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
+        if (TextAnimDialogue.instance.textRunning) return;
         if (other.tag == "Player")
         {
             TextAnimDialogue.instance.StartText(text);

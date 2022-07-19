@@ -1,10 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using MoreMountains.Feedbacks;
 
 public class CombatController : MonoBehaviour
 {
-    public enum State { Idle, Reload, Roll, Cutscene }
+    public enum State { Intro, Idle, Reload, Roll, Cutscene, Hit }
 
     [Header("References")]
     public State state;
@@ -23,9 +24,15 @@ public class CombatController : MonoBehaviour
     public int currentWeapon;
     public int[] curAmmo;
     public int[] maxAmmo;
-    public float[] fireSpeed;
+    public SpriteRenderer[] sprites;
     public float[] reloadTime;
     public GameObject[] bullets;
+
+    [Header("Feedbacks")]
+    public MMFeedbacks shootFeedback1;
+    public MMFeedbacks shootFeedback2;
+    public MMFeedbacks shootFeedback3;
+    public MMFeedbacks shootFeedback4;
 
     private void Awake()
     {
@@ -35,7 +42,7 @@ public class CombatController : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        state = State.Idle;
+        state = State.Intro;
         NextState();
     }
 
@@ -49,58 +56,12 @@ public class CombatController : MonoBehaviour
         gun.transform.position = mousePositionTP * gunDistance + (Vector2)transform.position;
         gun.transform.eulerAngles = new Vector3(0, 0, Mathf.Atan2(mousePositionTP.y, mousePositionTP.x) * Mathf.Rad2Deg);
 
+        sprites[currentWeapon].flipY = mousePositionTP.x < 0;
+
 
     }
 
     //////////////// Functions ///////////////
-    void Shoot()
-    {
-        switch (currentWeapon)
-        {
-            case 0:
-                Weapon1();
-                break;
-            case 1:
-                Weapon2();
-                break;
-            case 2:
-                Weapon3();
-                break;
-            case 3:
-                Weapon4();
-                break;
-            case 4:
-                Weapon5();
-                break;
-            case 5:
-                Weapon6();
-                break;
-        }
-    }
-    void Weapon1()
-    {
-        Instantiate(bullets[currentWeapon], gun.transform.position, gun.transform.rotation);
-    }
-    void Weapon2()
-    {
-        Instantiate(bullets[currentWeapon], gun.transform.position, gun.transform.rotation);
-    }
-    void Weapon3()
-    {
-        Instantiate(bullets[currentWeapon], gun.transform.position, gun.transform.rotation);
-    }
-    void Weapon4()
-    {
-        Instantiate(bullets[currentWeapon], gun.transform.position, gun.transform.rotation);
-    }
-    void Weapon5()
-    {
-        Instantiate(bullets[currentWeapon], gun.transform.position, gun.transform.rotation);
-    }
-    void Weapon6()
-    {
-        Instantiate(bullets[currentWeapon], gun.transform.position, gun.transform.rotation);
-    }
     //////////////// Coroutine ///////////////
 
     //////////////// States ///////////////
@@ -117,14 +78,75 @@ public class CombatController : MonoBehaviour
         StartCoroutine((IEnumerator)info.Invoke(this, null)); // Call the next state
     }
 
+    IEnumerator IntroState()
+    {
+        for (int i = 0; i < sprites.Length; i++)
+        {
+            sprites[i].enabled = false;
+        }
+
+        yield return new WaitForSeconds(2.4f);
+
+        sprites[currentWeapon].enabled = true;
+
+        state = State.Idle;
+        NextState();
+    }
     IEnumerator IdleState()
     {
         while (state == State.Idle)
         {
             if (Input.GetButton("Fire1"))
             {
-                Shoot();
-                yield return new WaitForSeconds(fireSpeed[currentWeapon]);
+                Animator a = gun.transform.GetChild(0).GetChild(currentWeapon).GetComponent<Animator>();
+                switch (currentWeapon)
+                {
+                    case 0:
+                        Animator muzzle = a.transform.GetChild(0).GetComponent<Animator>();
+                        muzzle.Play("Muzzle");
+                        a.Play("Fireball Shoot");
+
+                        shootFeedback1.PlayFeedbacks();
+                        Instantiate(bullets[currentWeapon], gun.transform.position, gun.transform.rotation);
+                        yield return new WaitForSeconds(0.4f);
+
+                        a.Play("Fireball Idle");
+                        break;
+                    case 1:
+                        Animator m = a.transform.GetChild(0).GetComponent<Animator>();
+                        int num = Random.Range(1, 6);
+
+                        a.Play("Dice " + num);
+                        yield return new WaitForSeconds(0.2f);
+
+                        a.Play("Dice Shoot");
+                        m.Play("Muzzle");
+                        GameObject b = Instantiate(bullets[currentWeapon], gun.transform.position, gun.transform.rotation);
+                        b.GetComponent<BulletController>().damage = num;
+
+                        shootFeedback2.PlayFeedbacks();
+                        yield return new WaitForSeconds(0.5f);
+
+                        a.Play("Dice Idle");
+                        break;
+                    case 2:
+                        a.Play("Crystal Shoot");
+                        shootFeedback3.PlayFeedbacks();
+                        Instantiate(bullets[currentWeapon], gun.transform.position, gun.transform.rotation);
+                        yield return new WaitForSeconds(0.3f);
+                        a.Play("Crystal Idle");
+                        break;
+                    case 3:
+
+                        a.Play("Laser Shoot");
+                        shootFeedback4.PlayFeedbacks();
+                        gun.transform.position = mousePositionTP * 8.5f + (Vector2)PlayerController.instance.transform.position;
+                        shootFeedback1.PlayFeedbacks();
+                        Instantiate(bullets[currentWeapon], gun.transform.position, gun.transform.rotation);
+                        yield return new WaitForSeconds(0.15f);
+                        a.Play("Laser Idle");
+                        break;
+                }
             }
 
             if (curAmmo[currentWeapon] <= 0)
@@ -152,15 +174,38 @@ public class CombatController : MonoBehaviour
 
     public IEnumerator RollState(float time)
     {
+        for (int i = 0; i < sprites.Length; i++)
+        {
+            sprites[i].enabled = false;
+        }
+        yield return new WaitForSeconds(time);
+
+
         yield return new WaitForSeconds(time);
 
         int lastWeapon = currentWeapon;
         while (currentWeapon == lastWeapon)
         {
+            currentWeapon = Random.Range(0, 4);
+        }
+        sprites[currentWeapon].enabled = true;
+        NextState();
+    }
+
+    public IEnumerator HitState(float time)
+    {
+        for (int i = 0; i < sprites.Length; i++)
+        {
+            sprites[i].enabled = false;
+        }
+        int lastWeapon = currentWeapon;
+        while (currentWeapon == lastWeapon)
+        {
             currentWeapon = Random.Range(0, 3);
         }
-
+        sprites[currentWeapon].enabled = true;
         yield return new WaitForSeconds(time);
+
 
         NextState();
     }
